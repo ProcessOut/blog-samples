@@ -57,9 +57,7 @@ Similar to the apparté, we have this simple design in mind:
 
 <span style="margin-left: 3em"/>The next step is coding that FSM. It’s the easiest step, trust me. There are plenty of reputable libraries in all the languages that allow you to implement your FSM easily. You can even take a look at the libraries’ code, it’s not very complicated. I recommend that you pick a library which allows you to set rules for the transitions. Often times there are no difference between rules and transitions, since a rule is just a transition condition. Since I’m a Gopher we’ll be looking at an example in Go of integrating our little FSM. I’ve forked a library (https://github.com/ProcessOut/fsm) in order to make this process simpler.
 
-``` go
-
-// It is recommended to read the comments ;).
+<pre class="styled-code rounded shadowed large-pre"><code class="go">// It is recommended to read the comments ;).
 
 // Transaction which will be the data that flows.
 // Has to implement IDer (see `ID()`) for the fsm package.
@@ -70,35 +68,36 @@ type Transaction struct {
     // pending, failed bool
 }
 
-// ID will return the status as to define the different states.
-// You don't have to return a string here, you can return anything/
-// You could also return a structure which would mean that your
-// states would depend on these two fields (see states below)
+// ID will return the status as to define the different 
+// states. You don't have to return a string here, you 
+// can return anything. You could also return a structure
+// which would mean that your states would depend on these
+// two fields (see states below)
 func (t Transaction) ID() fsm.ID { return t.Status }
 
 var (
   // Here we describe the states that are possible
-  // It's your data structure with the IDable fields defined
+  // It's your data structure with IDable fields defined
   // in `ID()` set to their values.
   statePdg = Transaction{Status: "pending"}
   stateAth = Transaction{Status: "authorized"}
   stateCpt = Transaction{Status: "captured"}
   // Important:
-  // If our `ID()` returned the transaction structure with three
-  // fields (Status, pending, failed),
+  // If our `ID()` returned the transaction structure 
+  // with three fields (Status, pending, failed),
   // we could define states as:
-  /*
-   * (if field not defined it defaults to false)
-   * stateAthP = Transaction{Status: "authorization", pending: true}
-   * stateAthF = Transaction{Status: "authorization", failed: true}
-   * stateAthS = Transaction{Status: "authorization", failed: false}
-   * stateCapF = Transaction{Status: "capture", failed: true}
-   * stateCapS = Transaction{Status: "capture", failed: false}
-   */
-   // This allows you to define flows without changing your data
-   // structures. Here the flow could be: (see image)
+/*
+* (if field not defined it defaults to false)
+* stateAthP = Transaction{Status: "authorization", pending: true}
+* stateAthF = Transaction{Status: "authorization", failed: true}
+* stateAthS = Transaction{Status: "authorization", failed: false}
+* stateCapF = Transaction{Status: "capture", failed: true}
+* stateCapS = Transaction{Status: "capture", failed: false}
+*/
+   // This allows you to define flows without changing your
+   // data structures. Here the flow could be: (see image)
 )
-```
+</code></pre>
 
 ![struct-automaton.png](https://raw.githubusercontent.com/ProcessOut/blog-samples/master/automatons/struct-automaton.png "multiple fields automaton")
 
@@ -106,8 +105,7 @@ var (
 
 <span style="margin-left: 3em"/> The transitions are quite simple here, but as in the commented example we could also define more complex transitions that come from more than one data point (and not just the `status`). Now it's time for the transitions and the  transition rules. Note that in a way, a transition from state to state itself is a transition rule, and this is reflected in the package. Functions that define the rules here are called `Guards`.
 
-``` go
-// machine is our actual FSM
+<pre class="styled-code rounded shadowed large-pre"><code class="go">// machine is our actual FSM
 var machine = fsm.Machine{}
 
 // sampleGuard will be a guard for checking if a transition
@@ -117,7 +115,8 @@ func sampleGuard(start fsm.State, goal fsm.State) error {
     if start.I().(Transaction).Amount <= 0 {
         return errors.New("Can't transition, amount is <= 0")
     }
-    if start.I().(Transaction).Amount != goal.I().(Transaction).Amount {
+    if start.I().(Transaction).Amount != 
+        goal.I().(Transaction).Amount {
         return errors.New("Can't transition, amount is different")
     }
     return nil
@@ -138,8 +137,8 @@ func init() {
     machine.Rules = &rules
 }
 
-// testFlow tests the machine and with its rules defined. Serves as an example
-// on how to use the `fsm' package
+// testFlow tests the machine and with its rules defined. 
+// Serves as an example on how to use the `fsm' package
 func testFlow() {
     // Imagine you have your data that's trying to go from
     // pending to authorized.
@@ -160,7 +159,8 @@ func testFlow() {
         fmt.Println("2. Transition failed:", err)
     }
 
-    // Now from authorized to authorized (not possible in current schema)
+    // Now from authorized to authorized (not possible in 
+    // current schema)
     // Will fail
     if err := machine.Transition(fsm.NewState(authorized)); err != nil {
         fmt.Println("3. Transition failed:", err)
@@ -169,14 +169,13 @@ func testFlow() {
     // Note that the machine will, of course, not transition
     // if there's an error in the transition.
 }
-```
+</code></pre>
 
 Output:
 
-``` none
-1. Transition failed: Guard failed from pending to authorized: Can't transition, amount is <= 0
+<pre class="styled-code rounded shadowed large-pre"><code class="nohighlight">1. Transition failed: Guard failed from pending to authorized: Can't transition, amount is <= 0
 3. Transition failed: No rules found for authorized to authorized
-```
+</code></pre>
 
 
 <span style="margin-left: 3em"/> So not only are FSMs really simple to integrate, they’re also really fast. It’s quite important when you have a lot of tests, and don’t wanna wait a while after every change. We applied FSMs here to the logic of transactions, but the sky’s the limit, and I’m really interested as to where you guys find you can apply this type of logic, do not hesitate to speak to me about this: guillaume@processout.com . Sure, you might have to modify your data structures a bit, but you’ll be reaping the benefits of “forced integrity”, a.k.a. no bugs possible.
